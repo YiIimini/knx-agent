@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="KNX commissioning">
+  <rect width="64" height="64" rx="14" fill="#10161d"/>
+  <!-- twisted pair: two bus rails -->
+  <path d="M8 18h48" stroke="#2ee6c5" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M8 46h48" stroke="#2ee6c5" stroke-width="2.4" stroke-linecap="round" opacity="0.55"/>
+  <!-- three devices hanging on the bus -->
+  <g stroke="#f4f7fa" stroke-width="2" stroke-linecap="round">
+    <path d="M17 18v9M32 18v9M47 18v9"/>
+  </g>
+  <g fill="#f4f7fa">
+    <rect x="12.5" y="27" width="9" height="11" rx="2"/>
+    <rect x="27.5" y="27" width="9" height="11" rx="2"/>
+    <rect x="42.5" y="27" width="9" height="11" rx="2"/>
+  </g>
+  <!-- telegram on the bus -->
+  <path d="M17 46v6M32 46v6M47 46v6" stroke="#f4f7fa" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+  <g fill="#ffb454">
+    <circle cx="17" cy="52" r="2.6"/>
+    <circle cx="32" cy="52" r="2.6"/>
+    <circle cx="47" cy="52" r="2.6"/>
+  </g>
+  <!-- link activity between the two rails -->
+  <path d="M20 36h6l3-5 4 10 3-5h8" fill="none" stroke="#2ee6c5" stroke-width="1.8"
+        stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+</svg>

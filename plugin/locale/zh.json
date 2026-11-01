@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "title": "KNX 现场调试",
+    "description": "在 Mac 上通过 KNXnet/IP 完成 KNX 有线系统的调试与验收：总线扫描、个体编址、内存与属性访问、组值打点、下载配方、故障诊断，以及内置总线模拟器。"
+  },
+  "tools": {
+    "knx_search": "发现 KNXnet/IP 网关",
+    "knx_connect": "建立隧道或组播路由连接",
+    "knx_disconnect": "断开连接并释放通道",
+    "knx_status": "连接、计数器、只读策略与审计",
+    "knx_scan": "扫描一条线路上的设备",
+    "knx_device_info": "设备身份与掩码版本",
+    "knx_memory_read": "读取设备内存",
+    "knx_memory_write": "写入设备内存",
+    "knx_property_read": "读取接口对象属性",
+    "knx_ga_read": "组值读取（按 DPT 解码）",
+    "knx_ga_write": "组值写入（按 DPT 编码）",
+    "knx_monitor": "采集总线报文",
+    "knx_download": "执行下载配方",
+    "knx_capture": "把一次下载录制为配方",
+    "knx_validate_recipe": "不接设备校验配方",
+    "knx_import": "导入产品数据或工程文件",
+    "knx_library": "本地库操作",
+    "knx_build_download": "按参数内存布局生成配方",
+    "knx_project": "解析 .knxproj / .knxprod",
+    "knx_proxy": "运行 ETS 录制代理",
+    "knx_recipe_from_capture": "把捕获转成配方",
+    "knx_catalog": "配方库",
+    "knx_diagnose": "把观测结果诊断为结论",
+    "knx_simulator": "启停内置总线模拟器"
+  }
+}

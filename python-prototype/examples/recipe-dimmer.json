@@ -1,0 +1,15 @@
+{
+  "schema": "knxagent.download/1",
+  "device": { "ia": "1.1.10", "name": "Dimmer EG", "order": "AKH-0401.02", "app": "Dimmer 4f" },
+  "options": { "chunk": 11, "verify": true },
+  "source": "capture",
+  "steps": [
+    { "op": "ia_write", "ia": "{{ia}}" },
+    { "op": "memory_write", "address": "0x4000", "data": "7b0a0001ff0000000000130a0b" },
+    { "op": "memory_write", "address": "0x400d", "data": "0c0d0e0f1011121314" },
+    { "op": "memory_write", "address": "0x4700", "data": "0a00ff10" },
+    { "op": "memory_expect", "address": "0x4700", "data": "0a00ff10" },
+    { "op": "restart", "master": false },
+    { "op": "group_expect", "ga": "3/1/5", "dpt": "9.001", "value": 21.5, "timeout": 3 }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "meta": {
+    "title": "KNX Commissioning",
+    "description": "Commission, download and verify KNX wired installations over KNXnet/IP from the Mac: bus scan, addressing, memory and property access, group value acceptance, download recipes, diagnostics and a built-in bus simulator."
+  },
+  "tools": {
+    "knx_search": "Discover KNXnet/IP gateways",
+    "knx_connect": "Open a KNXnet/IP tunnel or multicast routing link",
+    "knx_disconnect": "Close the connection and release the channel",
+    "knx_status": "Connection, counters, policy and audit trail",
+    "knx_scan": "Scan a line for devices",
+    "knx_device_info": "Device identity and mask version",
+    "knx_memory_read": "Read device memory",
+    "knx_memory_write": "Write device memory",
+    "knx_property_read": "Read an interface object property",
+    "knx_ga_read": "Group value read (DPT decoded)",
+    "knx_ga_write": "Group value write (DPT decoded)",
+    "knx_monitor": "Collect bus traffic",
+    "knx_download": "Execute a download recipe",
+    "knx_capture": "Record a download as a recipe",
+    "knx_validate_recipe": "Validate a recipe without a device",
+    "knx_import": "Import product data or a project",
+    "knx_library": "Work with the imported library",
+    "knx_build_download": "Build a download from a parameter layout",
+    "knx_project": "Read a .knxproj or .knxprod",
+    "knx_proxy": "Run the ETS recording proxy",
+    "knx_recipe_from_capture": "Turn a capture into a recipe",
+    "knx_catalog": "The recorded-recipe catalog",
+    "knx_diagnose": "Diagnose observations into findings",
+    "knx_simulator": "Start or stop the bus simulator"
+  }
+}

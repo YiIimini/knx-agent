@@ -1,0 +1,21 @@
+{
+  "gateway": "192.168.1.50",
+  "lines": [
+    {
+      "line": "1.1",
+      "devices": [
+        {
+          "ia": "1.1.10",
+          "recipe": "examples/recipe-dimmer.json",
+          "verify": [
+            {
+              "ga": "1/2/3",
+              "dpt": "1.001",
+              "value": 1
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

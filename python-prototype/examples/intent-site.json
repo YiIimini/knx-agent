@@ -1,0 +1,14 @@
+{
+  "gateway": "192.168.1.50",
+  "lines": [
+    {
+      "line": "1.1",
+      "devices": [
+        { "ia": "1.1.10", "recipe": "examples/recipe-dimmer.json",
+          "verify": [{ "ga": "3/1/5", "dpt": "9.001", "value": 21.5 }] },
+        { "ia": "1.1.11", "recipe": "examples/recipe-actor.json",
+          "verify": [{ "ga": "1/2/3", "dpt": "1.001", "value": 1 }] }
+      ]
+    }
+  ]
+}

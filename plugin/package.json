@@ -1,0 +1,33 @@
+{
+  "name": "@local/knx-agent",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "KNX wired-system commissioning tools: KNXnet/IP tunnelling, cEMI memory/group services, download recipes, diagnostics and an in-process bus simulator.",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib/*.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg",
+    "README.md",
+    "examples/*.json"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": []
+    }
+  }
+}

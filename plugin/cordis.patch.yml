@@ -1,0 +1,26 @@
+- insert:
+    - id: knx-agent
+      name: '@local/knx-agent'
+      config:
+        gateway: ''
+        port: 3671
+        layer: link
+        ackTimeoutMs: 1500
+        confirmTimeoutMs: 400
+        responseTimeoutMs: 2000
+        scanSettleMs: 600
+        allowWrites: true
+        libraryPath: ''
+        proxyPort: 3671
+        captureDir: ''
+        catalogPath: ''
+        simulatorDevices:
+          - ia: 1.1.1
+            name: sim-actor
+            descriptor: 1968
+          - ia: 1.1.2
+            name: sim-dimmer
+            descriptor: 1797
+          - ia: 1.1.3
+            name: sim-shutter
+            descriptor: 1797
