@@ -76,6 +76,22 @@ window.__ModuleLoader__.load({
         channels: '通道',
         captures: '捕获文件',
         buildFromCapture: '从捕获生成配方',
+        acceptTitle: '批量验收',
+        runCheck: '体检',
+        readValues: '读组值',
+        expected: '应装',
+        present: '在线',
+        missing: '缺失',
+        maskMismatch: '掩码不符',
+        unexpected: '工程外',
+        valueMismatch: '值不符',
+        name: '名称',
+        status: '状态',
+        maskOnBus: '总线掩码',
+        maskInProject: '工程掩码',
+        gaLinks: '组地址',
+        saveReport: '保存报告',
+        saved: '已保存',
         catalogTitle: '配方库',
         installRecipe: '入库当前配方',
         installed: '已入库',
@@ -141,6 +157,22 @@ window.__ModuleLoader__.load({
         channels: 'channels',
         captures: 'Captures',
         buildFromCapture: 'Recipe from capture',
+        acceptTitle: 'Acceptance',
+        runCheck: 'Check',
+        readValues: 'Read values',
+        expected: 'expected',
+        present: 'present',
+        missing: 'missing',
+        maskMismatch: 'mask mismatch',
+        unexpected: 'not in project',
+        valueMismatch: 'value mismatch',
+        name: 'name',
+        status: 'status',
+        maskOnBus: 'mask on bus',
+        maskInProject: 'mask in project',
+        gaLinks: 'GA links',
+        saveReport: 'Save report',
+        saved: 'saved',
         catalogTitle: 'Recipe catalog',
         installRecipe: 'Store current recipe',
         installed: 'stored',
@@ -452,6 +484,70 @@ window.__ModuleLoader__.load({
         note ? h('div', { className: 'knx-note', style: { wordBreak: 'break-all' } }, note) : null);
     }
 
+    function AcceptCard({ t, state, call, busy }) {
+      const [line, setLine] = useState('1.1');
+      const [readValues, setReadValues] = useState(true);
+      const [savePath, setSavePath] = useState('');
+      const [result, setResult] = useState(null);
+      const run = () => call('accept', { line, readValues, savePath: savePath || undefined }).then(setResult);
+
+      const statusTag = (status) => ({
+        ok: 'ok', missing: 'high', 'mask-mismatch': 'high', 'no-descriptor': 'medium',
+        answered: 'ok', 'no-answer': 'medium', 'value-mismatch': 'high',
+      }[status] ?? 'info');
+
+      return h('div', { className: 'knx-card' },
+        h('h3', null, t('acceptTitle')),
+        h('div', { className: 'knx-row' },
+          h('input', { className: 'knx-input', style: { width: 80 }, value: line, onChange: (event) => setLine(event.target.value) }),
+          h('label', { className: 'knx-sub', style: { display: 'flex', gap: 6, alignItems: 'center' } },
+            h('input', { type: 'checkbox', checked: readValues, onChange: (event) => setReadValues(event.target.checked) }),
+            t('readValues')),
+          h('button', { className: 'knx-btn primary', disabled: busy || !state?.connection?.connected, onClick: run }, t('runCheck'))),
+        result && result.ok === false ? h('div', { className: 'knx-banner' }, result.error) : null,
+        result && result.ok
+          ? h('div', null,
+            h('div', { className: 'knx-row', style: { gap: 6, flexWrap: 'wrap' } },
+              h('span', { className: 'knx-tag' }, `${t('expected')} ${result.summary.expected}`),
+              h('span', { className: 'knx-tag ok' }, `${t('present')} ${result.summary.present}`),
+              result.summary.missing ? h('span', { className: 'knx-tag high' }, `${t('missing')} ${result.summary.missing}`) : null,
+              result.summary.maskMismatch ? h('span', { className: 'knx-tag high' }, `${t('maskMismatch')} ${result.summary.maskMismatch}`) : null,
+              result.summary.unexpected ? h('span', { className: 'knx-tag medium' }, `${t('unexpected')} ${result.summary.unexpected}`) : null,
+              result.summary.valueMismatch ? h('span', { className: 'knx-tag high' }, `${t('valueMismatch')} ${result.summary.valueMismatch}`) : null),
+            h(Table, {
+              columns: [
+                { key: 'ia', label: 'IA', mono: true },
+                { key: 'name', label: t('name') },
+                { key: 'status', label: t('status'), render: (row) => h('span', { className: `knx-tag ${statusTag(row.status)}` }, row.status) },
+                { key: 'observedMask', label: t('maskOnBus'), mono: true },
+                { key: 'expectedMask', label: t('maskInProject'), mono: true },
+                { key: 'groupAddressLinks', label: t('gaLinks'), mono: true },
+              ],
+              rows: result.devices,
+              empty: t('empty'),
+            }),
+            result.unexpected?.length
+              ? h('div', { className: 'knx-note' }, `${t('unexpected')}: ${result.unexpected.map((row) => row.ia).join(', ')}`)
+              : null,
+            result.groupValues?.length
+              ? h(Table, {
+                columns: [
+                  { key: 'ga', label: 'GA', mono: true },
+                  { key: 'dpt', label: 'DPT', mono: true },
+                  { key: 'status', label: t('status'), render: (row) => h('span', { className: `knx-tag ${statusTag(row.status)}` }, row.status) },
+                  { key: 'value', label: t('value'), mono: true, render: (row) => (row.value === null ? '—' : JSON.stringify(row.value)) },
+                ],
+                rows: result.groupValues,
+                empty: t('empty'),
+              })
+              : null,
+            h('div', { className: 'knx-row' },
+              h('input', { className: 'knx-input', style: { flex: 1, minWidth: 140 }, placeholder: 'report.md', value: savePath, onChange: (event) => setSavePath(event.target.value) }),
+              h('button', { className: 'knx-btn ghost', disabled: busy || !savePath, onClick: () => call('accept', { line, readValues, savePath }).then(setResult) }, t('saveReport')),
+              result.saved ? h('span', { className: 'knx-note' }, t('saved')) : null))
+          : h('div', { className: 'knx-empty' }, t('empty')));
+    }
+
     function ProxyCard({ t, state, call, busy, onRecipe }) {
       const [port, setPort] = useState('3671');
       const [upstream, setUpstream] = useState('');
@@ -632,6 +728,7 @@ window.__ModuleLoader__.load({
         !connected ? h('div', { className: 'knx-note' }, t('needConnection')) : null,
         h('div', { className: 'knx-grid' },
           h(ScanCard, { t, state, call, busy, key: 'scan' }),
+          h(AcceptCard, { t, state, call, busy, key: 'accept' }),
           h(GroupCard, { t, state, call, busy, key: 'group' }),
           h(DownloadCard, { t, state, call, busy, seed: recipeText, key: 'download' }),
           h(LibraryCard, { t, state, call, busy, onRecipe: (recipe) => recipe && setRecipeText(JSON.stringify(recipe, null, 2)), key: 'library' }),

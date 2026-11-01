@@ -42,9 +42,9 @@ export class TableProfileStore {
   async load() {
     try {
       const parsed = JSON.parse(await fs.readFile(this.file, 'utf8'));
-      if (parsed && parsed.profiles) return parsed;
+      if (parsed && parsed.profiles) return { encodings: {}, ...parsed };
     } catch { /* missing: start empty */ }
-    return { version: PROFILE_STORE_VERSION, profiles: {} };
+    return { version: PROFILE_STORE_VERSION, profiles: {}, encodings: {} };
   }
 
   async save(store) {
@@ -72,6 +72,32 @@ export class TableProfileStore {
     }
     await this.save(store);
     return { saved, file: this.file };
+  }
+
+  /** Remember how this device family packs parameter bits and octets. */
+  async putEncoding(keys, encoding, meta = {}) {
+    const store = await this.load();
+    const now = new Date().toISOString();
+    const saved = [];
+    store.encodings = store.encodings ?? {};
+    for (const { kind, key } of keys) {
+      store.encodings[key] = {
+        key, kind, encoding: { ...encoding }, source: meta.source ?? 'calibrated',
+        device: meta.device ?? null, updatedAt: now,
+      };
+      saved.push(key);
+    }
+    await this.save(store);
+    return { saved, file: this.file };
+  }
+
+  async findEncoding(keys) {
+    const store = await this.load();
+    for (const { kind, key } of keys) {
+      const entry = (store.encodings ?? {})[key];
+      if (entry) return { ...entry, matchedBy: kind };
+    }
+    return null;
   }
 
   /** First profile that matches this device, most specific key first. */

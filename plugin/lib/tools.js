@@ -12,6 +12,29 @@ import * as opsModule from './ops.js';
 
 const { ops, BUS_OPS } = opsModule;
 
+/** DSH requires tool results to be lossless JSON: no undefined members, no NaN. */
+export function jsonSafe(value, seen = new Set()) {
+  if (value === null || typeof value !== 'object') {
+    if (typeof value === 'number' && !Number.isFinite(value)) return null;
+    return typeof value === 'function' || typeof value === 'undefined' ? null : value;
+  }
+  if (Buffer.isBuffer(value)) return value.toString('hex');
+  if (seen.has(value)) return null;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    const out = value.map((item) => jsonSafe(item, seen));
+    seen.delete(value);
+    return out;
+  }
+  const out = {};
+  for (const [key, item] of Object.entries(value)) {
+    if (item === undefined || typeof item === 'function') continue;
+    out[key] = jsonSafe(item, seen);
+  }
+  seen.delete(value);
+  return out;
+}
+
 const textResult = (value) => [{
   type: 'text',
   text: typeof value === 'string' ? value : `\`\`\`json\n${JSON.stringify(value, null, 2)}\n\`\`\``,
@@ -190,7 +213,25 @@ const TABLE = [
     line: { type: 'string', description: 'Area.line to check, e.g. "1.1" (default "1.1").' },
     projectId: { type: 'string', description: 'Project entry id (defaults to the newest imported project).' },
     savePath: { type: 'string', description: 'Optional path to write the Markdown report to.' },
+    readValues: { type: 'boolean', description: 'Also read every group address this line should answer (default false).' },
+    expect: {
+      type: 'array',
+      description: 'Point level expectations: [{ga, dpt, value}]. Implies readValues.',
+      items: {
+        type: 'object',
+        additionalProperties: false,
+        properties: { ga: { type: 'string' }, dpt: { type: 'string' }, value: {} },
+        required: ['ga', 'value'],
+      },
+    },
+    valueTimeoutMs: { type: 'integer', description: 'Per-address read window (default 800).' },
   }), 'accept'],
+
+  ['knx_calibrate', 'Determine how a device actually stores parameters by comparing the bytes it holds with every encoding variant (bit 0 as MSB or LSB, big- or little-endian octets). The device is a commissioned one, so its memory already contains the right values: the variant that reproduces them is the one this product family uses. The result is stored per product and applied by knx_build_download. Read-only.', object({
+    ia: { type: 'string', description: 'Device individual address.' },
+    projectId: { type: 'string', description: 'Project entry id (defaults to the newest imported project).' },
+    save: { type: 'boolean', description: 'Store the calibrated encoding for this product family (default true).' },
+  }), 'calibrate'],
 
   ['knx_diagnose', 'Diagnose observed evidence: a scan result, captured frames, or failed recipe steps. Returns findings with the next probe, never a guess.', object({
     scan: { type: 'array', items: { type: 'object' }, description: 'Devices from knx_scan.' },
@@ -225,8 +266,9 @@ function defineTool(runtime, name, description, parameters, opName) {
       if (exec?.signal?.aborted) throw new Error(`${name}: cancelled`);
       try {
         const run = () => ops[opName](runtime, input);
-        const value = BUS_OPS.has(opName) ? await runtime.serialize(run) : await run();
-        runtime.record(name, input, value ?? {});
+        const raw = BUS_OPS.has(opName) ? await runtime.serialize(run) : await run();
+        const value = jsonSafe(raw ?? {});
+        runtime.record(name, input, value);
         return value;
       } catch (error) {
         runtime.record(name, input, { ok: false, error: error.message });

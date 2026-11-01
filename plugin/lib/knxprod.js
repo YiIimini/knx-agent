@@ -463,9 +463,22 @@ export function resolveProduct(entry, { orderNumber = null, productId = null, ap
  * Bit 0 is the MSB of the first octet, which is the memory layout convention a
  * device reads back; `bits` of 1..32 are supported.
  */
-export function encodeBits(value, bits, bitOffset = 0) {
+export const DEFAULT_ENCODING = { bitOrder: 'msb', byteOrder: 'be' };
+
+/**
+ * Pack a parameter value into octets.
+ *
+ * `encoding` names the two conventions a vendor may have chosen, both of which
+ * have been seen in the field: bit 0 as the MSB of the first octet (default, the
+ * usual KNX memory layout) or as the LSB, and big- or little-endian octet order
+ * for multi-octet fields. `knx_calibrate` determines which one a device actually
+ * uses by comparing the bytes it holds with every variant.
+ */
+export function encodeBits(value, bits, bitOffset = 0, encoding = DEFAULT_ENCODING) {
   const width = Math.max(1, bits ?? 8);
   const octets = Math.ceil((bitOffset + width) / 8);
+  const littleEndian = encoding?.byteOrder === 'le';
+  const lsbFirst = encoding?.bitOrder === 'lsb';
   const buffer = Buffer.alloc(octets);
   let number = typeof value === 'boolean' ? (value ? 1 : 0) : Number(value);
   if (!Number.isFinite(number)) throw new Error(`value ${JSON.stringify(value)} is not numeric`);
@@ -476,13 +489,15 @@ export function encodeBits(value, bits, bitOffset = 0) {
   for (let index = 0; index < width; index += 1) {
     if (bitString[index] !== '1') continue;
     const absolute = bitOffset + index;
-    buffer[Math.floor(absolute / 8)] |= 1 << (7 - (absolute % 8));
+    const octet = Math.floor(absolute / 8);
+    const bitInOctet = lsbFirst ? absolute % 8 : 7 - (absolute % 8);
+    buffer[littleEndian ? octets - 1 - octet : octet] |= 1 << bitInOctet;
   }
   return { buffer };
 }
 
 /** Bit mask covering exactly the field, used for read-modify-write patches. */
-export function fieldMask(bits, bitOffset = 0) {
+export function fieldMask(bits, bitOffset = 0, encoding = DEFAULT_ENCODING) {
   const width = Math.max(1, bits ?? 8);
-  return encodeBits(width >= 32 ? 0xffffffff : 2 ** width - 1, width, bitOffset).buffer;
+  return encodeBits(width >= 32 ? 0xffffffff : 2 ** width - 1, width, bitOffset, encoding).buffer;
 }

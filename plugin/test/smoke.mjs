@@ -7,6 +7,7 @@ import zlib from 'node:zlib';
 import * as cemi from '../lib/cemi.js';
 import * as dpt from '../lib/dpt.js';
 import * as knxip from '../lib/knxip.js';
+import * as gateKnxprod from '../lib/knxprod.js';
 import { KnxRuntime } from '../lib/runtime.js';
 import { buildTools } from '../lib/tools.js';
 import { Tunnel } from '../lib/knxip.js';
@@ -41,9 +42,9 @@ const call = async (name, args = {}) => {
   if (!definition) throw new Error(`missing tool ${name}`);
   return definition.execute(args, { signal: { aborted: false } });
 };
-check('26 tools registered', tools.size === 26, String(tools.size));
+check('27 tools registered', tools.size === 27, String(tools.size));
 check('schemas are objects', [...tools.values()].every((t) => t.parameters?.type === 'object' && t.description.length > 20));
-check('disconnect, library and proxy tools exist', ['knx_disconnect', 'knx_import', 'knx_library', 'knx_build_download', 'knx_proxy', 'knx_recipe_from_capture', 'knx_catalog', 'knx_group_table', 'knx_accept'].every((name) => tools.has(name)));
+check('disconnect, library and proxy tools exist', ['knx_disconnect', 'knx_import', 'knx_library', 'knx_build_download', 'knx_proxy', 'knx_recipe_from_capture', 'knx_catalog', 'knx_group_table', 'knx_accept', 'knx_calibrate'].every((name) => tools.has(name)));
 
 const started = await call('knx_simulator', { action: 'start' });
 check('simulator started', started.ok && started.devices.length === 3, JSON.stringify(started.devices?.length));
@@ -474,6 +475,41 @@ check('acceptance reports what is on the bus but not in the project',
 check('acceptance writes a handover report',
   /# KNX acceptance/.test(acceptance.report ?? '') && /1\.1\.2/.test(acceptance.report ?? ''),
   String(acceptance.report ?? '').split('\n')[0]);
+await call('knx_ga_write', { ga: '1/1/3', dpt: '1.001', value: 1 });
+const withValues = await call('knx_accept', {
+  line: '1.1', readValues: true,
+  expect: [{ ga: '1/1/3', dpt: '1.001', value: true }],
+});
+check('acceptance reads group values it expects the line to answer',
+  withValues.ok && (withValues.groupValues ?? []).some((row) => row.ga === '1/1/3'
+    && row.status === 'answered' && row.value === true),
+  JSON.stringify(withValues.groupValues ?? withValues.summary));
+const mismatched = await call('knx_accept', {
+  line: '1.1', readValues: true, expect: [{ ga: '1/1/3', dpt: '1.001', value: false }],
+});
+check('a wrong expected value is reported as a mismatch',
+  mismatched.groupValues.some((row) => row.status === 'value-mismatch'),
+  JSON.stringify(mismatched.groupValues));
+
+console.log('encoding calibration');
+const { calibrateEncoding, checkableParameters } = await import('../lib/calibrate.js');
+const calParams = checkableParameters(resolved.application, { 'R-1': '300' });
+check('checkable parameters come from the project values', calParams.length === 1 && calParams[0].bits === 16,
+  JSON.stringify(calParams.map((p) => [p.id, p.bits, p.address])));
+for (const variant of [{ bitOrder: 'msb', byteOrder: 'be' }, { bitOrder: 'lsb', byteOrder: 'be' }]) {
+  const bytes = Buffer.from(encodeProbe(300, 16, variant), 'hex');
+  const result = await calibrateEncoding({
+    parameters: calParams,
+    read: async (address, count) => (address === 0x4700 ? bytes.subarray(0, count) : null),
+  });
+  check(`calibration identifies ${variant.bitOrder}/be`, result.ok && result.name === `${variant.bitOrder}/be`,
+    JSON.stringify({ name: result.name, candidates: result.candidates }));
+}
+function encodeProbe(value, bits, encoding) {
+  const { encodeBits } = gateKnxprod;
+  return encodeBits(value, bits, 0, encoding).buffer.toString('hex');
+}
+
 const maskCheck = await import('../lib/accept.js');
 check('mask strings map to descriptors', maskCheck.maskToDescriptor('MV-0705') === 0x0705
   && maskCheck.maskToDescriptor('garbage') === null);

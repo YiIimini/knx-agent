@@ -39,6 +39,15 @@ knx_accept { line: "1.1" }
 
 判读：`mask-mismatch` 通常是装错型号或工程版本不符；`unexpected` 里出现的地址要么是遗留设备，要么是工程没同步。
 
+想连**值**一起验，加期望值（会顺带读取工程里该线路的每个组地址）：
+
+```
+knx_accept { line: "1.1", readValues: true,
+             expect: [{ ga: "1/1/3", dpt: "1.001", value: true }] }
+```
+
+`no-answer` 表示设备没有应答（表里没这个地址，或还没下过应用）；`value-mismatch` 表示答了但值不对（参数错）。
+
 ## 4. 认设备、比工程
 
 ```
@@ -51,7 +60,17 @@ knx_library     { action: "resolve", ia: "1.1.10" }
 `resolve` 会给出：产品型号、应用程序与掩码、参数地址表、通信对象与组地址链接。
 字段解不出来时会明确标 `unresolved`——**不要**拿一个"看起来合理"的地址去写。
 
-## 5. 下发参数（工程值直接带入）
+## 5. 编码校准（每个产品族一次）
+
+参数写在哪个 bit、多字节怎么排，公开文档里没有统一答案。用一台**已调试好**的设备反推：它的内存里本来就是正确值。
+
+```
+knx_calibrate { ia: "1.1.10" }
+```
+
+工具会把 `msb/lsb × big/little endian` 四个变体分别编码，与设备实际字节比对，给出 `decisive` 或 `ambiguous`，命中的编码按产品族入库，之后 `knx_build_download` 自动套用。
+
+## 6. 下发参数（工程值直接带入）
 
 ```
 knx_build_download { ia: "1.1.10", useProjectValues: true }
@@ -63,7 +82,7 @@ knx_download       { recipe }                 # 真跑，失败即停并报告�
 - 位级参数（1 bit 使能、4 bit 档位）→ `memory_patch`：**读原字节 → 只改该字段 → 写回**，邻居不受影响；
 - 配方末尾的 `memory_expect` 是校验，不是装饰。
 
-## 6. 下发组地址表 / 关联表（换点位只做这一步）
+## 7. 下发组地址表 / 关联表（换点位只做这一步）
 
 首次需要校准表基址（每个型号一次）：
 
@@ -83,7 +102,7 @@ knx_download    { recipe }
 
 判读：写表后设备**只**响应表内组地址。表写到错地址比不写更糟，所以工具在基址未知时拒绝生成配方。
 
-## 7. 验收
+## 8. 验收
 
 ```
 knx_ga_write { ga: "1/1/3", dpt: "1.001", value: 1 }
@@ -95,7 +114,7 @@ knx_monitor  { seconds: 10 }
 - 完全无应答 → 表里没有这个组地址（回第 5 步），或设备没下过应用（需录制复放）；
 - DPT 用对：调光控制是 `3.007`（方向+步进），温度 `9.001`，时间 `10.001`，日期 `11.001`。
 
-## 8. 首次遇到的新产品（录制一次）
+## 9. 首次遇到的新产品（录制一次）
 
 ```
 knx_proxy { action: "start", port: 3671, upstream: { host: "<网关IP>" } }
@@ -107,7 +126,7 @@ knx_catalog { action: "install", recipePath, orderNumber: "<型号>" }
 
 之后：`knx_download { catalogId, ia }`。同型号第二台设备**不用再录**——配方按内容指纹归并（设备地址与备注被剔除）。
 
-## 9. 出问题时的诊断顺序
+## 10. 出问题时的诊断顺序
 
 ```
 knx_diagnose { scan, frames, failedSteps }
@@ -122,7 +141,7 @@ knx_diagnose { scan, frames, failedSteps }
 | 同一 IA 多次应答 | `DUPLICATE_INDIVIDUAL_ADDRESS` | 编程模式读串号，重编一个 |
 | 下载某步超时 | `STEP_TIMEOUT` | 断电重启 → 回读确认下到哪 → 续跑 |
 
-## 10. 收工
+## 11. 收工
 
 - 配方与表 profile 都在 `~/.dsh/knx-library/`，是普通 JSON，随工程归档；
 - 面板（侧边栏 **KNX**）可现场复现同一套操作：扫线、组值、下载、产品数据、录制代理、配方库、监听、诊断。

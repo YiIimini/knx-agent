@@ -209,8 +209,8 @@ export class DownloadRunner {
         const address = toInt(step.address);
         const bitOffset = toInt(step.bitOffset, 0);
         const bits = toInt(step.bits, 8);
-        const { buffer } = encodeBits(step.value, bits, bitOffset);
-        const mask = fieldMask(bits, bitOffset);
+        const { buffer } = encodeBits(step.value, bits, bitOffset, step.encoding ?? undefined);
+        const mask = fieldMask(bits, bitOffset, step.encoding ?? undefined);
         const current = await this.link.memoryRead(ia, address, buffer.length);
         if (!current) return { ok: false, detail: 'read-modify-write: read failed' };
         const patched = Buffer.alloc(buffer.length);

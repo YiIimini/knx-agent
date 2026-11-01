@@ -252,7 +252,7 @@ export class KnxLibrary {
    */
   async buildDownload({
     applicationId, values = {}, ia, chunk = 11, restart = false,
-    useProjectValues = false, projectId = null,
+    useProjectValues = false, projectId = null, encoding = null,
   } = {}) {
     let resolvedDevice = null;
     if (useProjectValues) {
@@ -292,7 +292,8 @@ export class KnxLibrary {
         continue;
       }
       const bits = parameter.bits ?? 8;
-      const { buffer } = encodeBits(rawValue, bits, parameter.bitOffset ?? 0);
+      const activeEncoding = encoding ?? undefined;
+      const { buffer } = encodeBits(rawValue, bits, parameter.bitOffset ?? 0, activeEncoding);
       if (parameter.bitOffset === 0 && bits % 8 === 0 && buffer.length * 8 === bits) {
         for (let offset = 0; offset < buffer.length; offset += chunk) {
           steps.push({
@@ -309,6 +310,7 @@ export class KnxLibrary {
           bitOffset: parameter.bitOffset ?? 0,
           bits,
           value: rawValue,
+          ...(encoding ? { encoding } : {}),
         });
       }
       plan.push({
@@ -345,6 +347,7 @@ export class KnxLibrary {
         ? { ia: resolvedDevice.iaText, name: resolvedDevice.name, source: 'project' }
         : null,
       projectValues: resolvedDevice ? Object.keys(resolvedDevice.parameterValues ?? {}).length : 0,
+      encoding: encoding ? `${encoding.bitOrder}/${encoding.byteOrder}` : 'default (msb/be)',
       plan,
       warnings,
       recipe,

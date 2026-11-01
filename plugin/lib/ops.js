@@ -20,6 +20,7 @@ import { readCapture } from './proxy.js';
 import { SYSTEM_B, buildTableRecipe, buildTables, inferProfile } from './gatable.js';
 import { identityKeys, withProfile } from './profiles.js';
 import { runAcceptance } from './accept.js';
+import { calibrateEncoding, checkableParameters, describeCalibration } from './calibrate.js';
 
 export class PolicyError extends Error {}
 
@@ -290,6 +291,20 @@ export const ops = {
 
   async buildDownload(runtime, params = {}) {
     const library = runtime.library();
+    let encoding = params.encoding ?? null;
+    if (!encoding) {
+      // A calibrated bit/octet order is device-family knowledge: apply it when the
+      // device resolves to a product we have calibrated before.
+      try {
+        const resolved = await library.resolve({ projectId: params.projectId ?? null, ia: params.ia ?? null });
+        if (resolved.ok) {
+          const stored = await runtime.profiles().findEncoding(identityKeys({
+            product: resolved.product, application: resolved.application,
+          }));
+          if (stored) encoding = stored.encoding;
+        }
+      } catch { /* calibration is optional */ }
+    }
     return library.buildDownload({
       applicationId: params.applicationId ?? null,
       values: params.values ?? {},
@@ -297,6 +312,7 @@ export const ops = {
       restart: params.restart ?? false,
       useProjectValues: Boolean(params.useProjectValues),
       projectId: params.projectId ?? null,
+      encoding,
     });
   },
 
@@ -488,9 +504,7 @@ export const ops = {
           source: hasBases ? (stored && !params.addressBase ? `library:${stored.matchedBy}` : 'explicit') : 'none',
         },
         needsProfile: !hasBases,
-        hint: hasBases
-          ? undefined
-          : 'base addresses are device/firmware specific: calibrate once with action "infer" on a recorded ETS group-address download (add save:true to reuse it per product)',
+        ...(hasBases ? {} : { hint: 'base addresses are device/firmware specific: calibrate once with action "infer" on a recorded ETS group-address download (add save:true to reuse it per product)' }),
       };
     }
     if (action === 'build') {
@@ -510,15 +524,47 @@ export const ops = {
     const report = await runAcceptance({
       library: runtime.library(),
       link: rt.needLink(),
+      bus: rt.needBus(),
       projectId: params.projectId ?? null,
       line: params.line ?? '1.1',
       settleMs: runtime.config.scanSettleMs ?? 600,
+      readValues: Boolean(params.readValues),
+      expect: params.expect ?? null,
+      valueTimeoutMs: params.valueTimeoutMs ?? 800,
     });
     if (report.ok && params.savePath) {
       await fs.writeFile(params.savePath, report.report, 'utf8');
       report.saved = params.savePath;
     }
     return report;
+  },
+
+  async calibrate(runtime, params = {}) {
+    const iface = await session(runtime, params);
+    const library = runtime.library();
+    const resolved = await library.resolve({ projectId: params.projectId ?? null, ia: params.ia ?? null });
+    if (!resolved.ok) return resolved;
+    if (!resolved.application) return { ok: false, error: 'device resolves to a product without an application program' };
+    const parameters = checkableParameters(resolved.application, resolved.device.parameterValues ?? {});
+    const ia = cemi.parseIA(params.ia ?? resolved.device.iaText);
+    const link = iface.needLink();
+    const result = await calibrateEncoding({
+      parameters,
+      read: (address, count) => link.memoryRead(ia, address, count),
+    });
+    if (!result.ok) return result;
+    let saved = null;
+    if (params.save !== false) {
+      saved = await runtime.profiles().putEncoding(identityKeys({
+        product: resolved.product, application: resolved.application,
+      }), result.encoding, { source: 'calibrated', device: { ia: resolved.device.iaText } });
+    }
+    return {
+      ...result,
+      device: { ia: resolved.device.iaText, name: resolved.device.name ?? null },
+      summary: describeCalibration(result),
+      saved: saved ? saved.saved : null,
+    };
   },
 
   async diagnose(runtime, params = {}) {
@@ -554,7 +600,7 @@ export const ops = {
 export const BUS_OPS = new Set([
   'connect', 'disconnect', 'scan', 'deviceInfo', 'memoryRead', 'memoryWrite',
   'propertyRead', 'gaRead', 'gaWrite', 'monitor', 'download', 'capture',
-  'simulator', 'proxy', 'recipeFromCapture', 'accept',
+  'simulator', 'proxy', 'recipeFromCapture', 'accept', 'calibrate',
 ]);
 
 /** Every operation the panel bridge may call, derived from this module. */

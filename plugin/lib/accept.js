@@ -7,6 +7,8 @@
  */
 
 import * as cemi from './cemi.js';
+import * as dpt from './dpt.js';
+import { normaliseDpt } from './knxprod.js';
 import { diagnose } from './diagnose.js';
 
 /** 'MV-0705' -> 0x0705; anything unparsable stays null rather than guessing. */
@@ -37,7 +39,10 @@ async function pickProject(library, projectId) {
  * @param options.projectId - project entry id (defaults to the newest import).
  * @param options.line - area.line to scan, e.g. "1.1" (default "1.1").
  */
-export async function runAcceptance({ library, link, projectId = null, line = '1.1', scanWindow = 48, settleMs = 600 }) {
+export async function runAcceptance({
+  library, link, bus = null, projectId = null, line = '1.1',
+  scanWindow = 48, settleMs = 600, readValues = false, expect = null, valueTimeoutMs = 800,
+}) {
   const project = await pickProject(library, projectId);
   if (!project) {
     return { ok: false, error: 'no imported project: run knx_import with a .knxproj first' };
@@ -107,17 +112,61 @@ export async function runAcceptance({ library, link, projectId = null, line = '1
     transport: null,
   });
 
+  // Point level: read the group addresses this line is supposed to answer and,
+  // when expectations are supplied, compare. Reads are the only way to see whether
+  // a device's table and parameters actually produce the intended behaviour.
+  let groupValues = null;
+  if ((readValues || expect) && bus) {
+    const wanted = new Map();
+    for (const device of inProject) {
+      for (const object of device.comObjects ?? []) {
+        for (const ga of object.groupAddresses ?? []) {
+          if (!wanted.has(ga)) wanted.set(ga, normaliseDpt(object.dpt) || '1.001');
+        }
+      }
+    }
+    for (const entry of expect ?? []) {
+      if (entry?.ga && !wanted.has(entry.ga)) wanted.set(entry.ga, normaliseDpt(entry.dpt) || '1.001');
+    }
+    const expectations = new Map((expect ?? []).map((entry) => [entry.ga, entry]));
+    groupValues = [];
+    for (const [ga, gaDpt] of [...wanted].slice(0, 64)) {
+      const wantedEntry = expectations.get(ga);
+      const dptId = normaliseDpt(wantedEntry?.dpt) || gaDpt;
+      const response = await bus.read(cemi.parseGA(ga), { timeoutMs: valueTimeoutMs });
+      const raw = response?.value ?? null;
+      const value = raw ? dpt.decode(dptId, raw) : null;
+      const expectedValue = wantedEntry ? wantedEntry.value : undefined;
+      let status = 'answered';
+      if (!response) status = 'no-answer';
+      else if (wantedEntry && JSON.stringify(value) !== JSON.stringify(expectedValue)
+        && Number(value) !== Number(expectedValue)) status = 'value-mismatch';
+      groupValues.push({
+        ga,
+        dpt: dptId,
+        status,
+        value,
+        expected: expectedValue ?? null,
+        raw: raw ? raw.toString('hex') : null,
+      });
+    }
+    summary.valuesRead = groupValues.length;
+    summary.valuesAnswered = groupValues.filter((row) => row.status !== 'no-answer').length;
+    summary.valueMismatch = groupValues.filter((row) => row.status === 'value-mismatch').length;
+  }
+
   return {
     ok: true,
     summary,
     devices: rows,
     unexpected,
+    groupValues,
     findings,
-    report: markdown(project, summary, rows, unexpected, findings),
+    report: markdown(project, summary, rows, unexpected, findings, groupValues),
   };
 }
 
-function markdown(project, summary, rows, unexpected, findings) {
+function markdown(project, summary, rows, unexpected, findings, groupValues = null) {
   const lines = [];
   lines.push(`# KNX acceptance — ${project.name || project.id}`);
   lines.push('');
@@ -128,6 +177,14 @@ function markdown(project, summary, rows, unexpected, findings) {
   lines.push('|---|---|---|---|---|---|');
   for (const row of rows) {
     lines.push(`| \`${row.ia}\` | ${row.name} | ${row.status} | ${row.observedMask ?? '—'} | ${row.expectedMask ?? '—'} | ${row.groupAddressLinks} |`);
+  }
+  if (groupValues && groupValues.length) {
+    lines.push('');
+    lines.push('| group address | DPT | status | value | expected |');
+    lines.push('|---|---|---|---|---|');
+    for (const row of groupValues) {
+      lines.push(`| \`${row.ga}\` | ${row.dpt} | ${row.status} | ${row.value === null ? '—' : JSON.stringify(row.value)} | ${row.expected === null ? '—' : JSON.stringify(row.expected)} |`);
+    }
   }
   if (unexpected.length) {
     lines.push('');
