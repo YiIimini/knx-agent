@@ -113,8 +113,9 @@ plugin/                     DSH 插件（零第三方依赖：node:dgram + node:
 ├── lib/accept.js           批量验收：工程 vs 现场、组值点级校验、Markdown 报告
 ├── lib/calibrate.js        编码自校准：msb/lsb × be/le 四变体比对
 ├── lib/tools.js            27 个工具（声明式绑定到 ops）
-├── client.js               面板 UI（8 张卡）
-└── test/smoke.mjs          98 项自检
+├── client.js               面板 UI（9 张卡）
+├── test/smoke.mjs          108 项自检
+└── test/contrast.mjs       按钮可读性（主题 token 配对 + WCAG 对比度）
 
 python-prototype/           早期参考实现（43 项协议测试），用于交叉验证常量与字节序列
 docs/                       协议笔记 / 现场流程 / 架构 / 安全审计 / macOS-vs-ETS 研究
@@ -133,6 +134,16 @@ docs/                       协议笔记 / 现场流程 / 架构 / 安全审计 
 
 全部是普通 JSON，可 diff、可归档、可版本化。
 
+## 面板配色
+
+面板沿用 Harness 的主题 token，不写死颜色。这里有个容易踩的坑，记在代码注释里也记在这：
+
+- 主按钮的填充是 `--dsw-alias-button-primary-fill`（浅色主题近黑 `#0f1115`，深色主题近白 `#f9fafb`），它配的前景色是 `--dsw-alias-label-primary-foreground`（浅色 `#fff`，深色 `#0f1115`），实测 18.9:1 / 18.08:1。
+- **不要**用 `--dsw-alias-button-contrast-fill` 当主按钮文字色。名字像是配套的，实际深色主题下它与填充同值（都是 `#f9fafb`），白字压白底，实测 **1.00:1**，文字直接消失。
+- 禁用态不要靠整体 `opacity` 淡化：那会连文字一起淡掉。改成淡填充 + 保留可读的前景色。
+
+`node test/contrast.mjs` 会把两个主题下 9 种按钮态的对比度都算一遍（装了 Harness 就读真实 token，没装就用冻结快照），任一态跌破 4.5:1（禁用态 3:1）即失败。
+
 ## 安全默认
 
 - 面板桥**会写总线**，因此经 Host 的 `connection.requestRejection` 做 Host/Origin + 浏览器凭证校验；无该服务时只接受回环 peer；可再加 `bridgeToken`。
@@ -144,7 +155,7 @@ docs/                       协议笔记 / 现场流程 / 架构 / 安全审计 
 
 ## 验证状态（务实说明）
 
-- **已验证**：协议字节序列、隧道/序号/ACK、扫描、内存读写、DPT、配方执行、录制→回放、工程与产品数据解析、组地址表语义、面板桥鉴权、路由传输——全部在自带模拟器上端到端跑通，`node test/smoke.mjs` 98 项。
+- **已验证**：协议字节序列、隧道/序号/ACK、扫描、内存读写、DPT、配方执行、录制→回放、工程与产品数据解析、组地址表语义、面板桥鉴权、路由传输——全部在自带模拟器上端到端跑通，`node test/smoke.mjs` 108 项。面板按钮文字在浅/深两套主题下的对比度，`node test/contrast.mjs` 19 项。
 - **未验证**：真实网关与设备、真实 ETS 载荷、KNX Secure。真机首次需要确认参数块/表基址与位序（配方内置回读，读错会立刻失败而不是静默写坏）。
 
 ## 文档

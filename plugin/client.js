@@ -45,6 +45,7 @@ window.__ModuleLoader__.load({
         write: '写入',
         read: '读取',
         downloadTitle: '下载',
+        validateRecipe: '校验配方',
         recipe: '配方 JSON',
         ia: '个体地址',
         dryRun: '预演',
@@ -126,6 +127,7 @@ window.__ModuleLoader__.load({
         write: 'Write',
         read: 'Read',
         downloadTitle: 'Download',
+        validateRecipe: 'Validate recipe',
         recipe: 'Recipe JSON',
         ia: 'Individual address',
         dryRun: 'Dry run',
@@ -201,16 +203,25 @@ window.__ModuleLoader__.load({
 .knx-input { height:30px; padding:0 9px; border-radius:8px; border:1px solid var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-primary); font-size:13px; min-width:0; }
 .knx-input:focus { outline:2px solid var(--dsw-alias-brand-primary); outline-offset:1px; }
 .knx-textarea { min-height:88px; padding:8px 9px; border-radius:8px; border:1px solid var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-primary); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; line-height:16px; resize:vertical; }
-.knx-btn { height:30px; padding:0 12px; border-radius:8px; border:1px solid var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-primary); font-size:13px; cursor:pointer; transition:background-color .2s ease; }
-.knx-btn:hover:not(:disabled) { background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-1)); }
-.knx-btn:disabled { opacity:.45; cursor:not-allowed; }
-/* primary: fill and text come from the same button pair as the rest of the UI. A
-   hard-coded white would be invisible in the dark theme, where the brand fill is
-   near-white and the contrast fill is dark. */
-.knx-btn.primary { border-color:transparent; background:var(--dsw-alias-button-primary-fill, var(--dsw-alias-brand-primary)); color:var(--dsw-alias-button-contrast-fill, var(--dsw-alias-bg-base)); }
-.knx-btn.primary:hover:not(:disabled) { background:var(--dsw-alias-button-primary-hover, var(--dsw-alias-brand-primary)); }
+.knx-btn { height:30px; padding:0 12px; border-radius:8px; border:1px solid var(--dsw-alias-border-l4); background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-primary); font-size:13px; line-height:1; cursor:pointer; transition:background-color .2s ease, border-color .2s ease; }
+.knx-btn:hover:not(:disabled) { background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-3)); border-color:var(--dsw-alias-border-l3); }
+/* Disabled stays readable: fading the whole control also fades its label, which is
+   exactly the "can't read the button" complaint. Drop to the tertiary label and a
+   quieter border instead, and keep the fill.
+   Measured: light 3.71:1, dark 6.53:1. */
+.knx-btn:disabled { background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-tertiary); border-color:var(--dsw-alias-border-l1); cursor:not-allowed; }
+/* primary: the fill is the brand fill, so the label must come from the foreground
+   token that pairs with it. --dsw-alias-button-contrast-fill is NOT that token:
+   in the dark theme it resolves to the same near-white as the fill, so the pair
+   measured 1.00:1 and the label vanished. --dsw-alias-label-primary-foreground is
+   #fff on light (#0f1115 fill) and #0f1115 on dark (#f9fafb fill).
+   Measured: light 18.9:1, dark 18.08:1, hover 9.59:1 / 16.24:1. */
+.knx-btn.primary { border-color:transparent; background:var(--dsw-alias-button-primary-fill, var(--dsw-alias-brand-primary)); color:var(--dsw-alias-label-primary-foreground, var(--dsw-alias-label-primary-inverted)); font-weight:500; }
+.knx-btn.primary:hover:not(:disabled) { background:var(--dsw-alias-button-primary-hover, var(--dsw-alias-brand-primary)); border-color:transparent; }
+.knx-btn.primary:disabled { background:var(--dsw-alias-button-primary-dimmed, var(--dsw-alias-bg-layer-3)); color:var(--dsw-alias-label-primary); border-color:transparent; }
 .knx-btn.ghost { border-color:transparent; background:transparent; color:var(--dsw-alias-label-secondary); }
-.knx-btn.ghost:hover:not(:disabled) { background:var(--dsw-alias-interactive-bg-hover, transparent); color:var(--dsw-alias-label-primary); }
+.knx-btn.ghost:hover:not(:disabled) { background:var(--dsw-alias-interactive-bg-hover, transparent); color:var(--dsw-alias-label-primary); border-color:transparent; }
+.knx-btn.ghost:disabled { background:transparent; color:var(--dsw-alias-label-tertiary); border-color:transparent; }
 .knx-table { width:100%; border-collapse:collapse; font-size:12px; line-height:18px; }
 .knx-table th { text-align:left; font-weight:500; color:var(--dsw-alias-label-secondary); padding:4px 6px; border-bottom:1px solid var(--dsw-alias-border-l1); }
 .knx-table td { padding:4px 6px; border-bottom:1px solid var(--dsw-alias-border-l1); vertical-align:top; }
@@ -354,7 +365,7 @@ window.__ModuleLoader__.load({
         h('h3', null, t('downloadTitle')),
         h('textarea', { className: 'knx-textarea', value: text, onChange: (event) => setText(event.target.value), spellCheck: false }),
         h('div', { className: 'knx-row' },
-          h('button', { className: 'knx-btn ghost', onClick: validate }, 'validate'),
+          h('button', { className: 'knx-btn ghost', onClick: validate }, t('validateRecipe')),
           h('button', { className: 'knx-btn', disabled: busy || !state?.connection?.connected, onClick: () => run(true) }, t('dryRun')),
           h('button', {
             className: 'knx-btn primary',

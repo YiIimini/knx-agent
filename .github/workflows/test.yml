@@ -22,6 +22,9 @@ jobs:
       - name: Self-checks (98)
         working-directory: plugin
         run: node test/smoke.mjs
+      - name: Button legibility (19)
+        working-directory: plugin
+        run: node test/contrast.mjs
 
   python:
     name: reference prototype (python ${{ matrix.python }})
