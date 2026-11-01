@@ -19,6 +19,7 @@ import { diagnose } from './diagnose.js';
 import { readCapture } from './proxy.js';
 import { SYSTEM_B, buildTableRecipe, buildTables, inferProfile } from './gatable.js';
 import { identityKeys, withProfile } from './profiles.js';
+import { runAcceptance } from './accept.js';
 
 export class PolicyError extends Error {}
 
@@ -504,6 +505,22 @@ export const ops = {
     return { ok: false, error: `unknown action ${JSON.stringify(action)}; use plan | build | infer | profiles` };
   },
 
+  async accept(runtime, params = {}) {
+    const rt = await session(runtime, params);
+    const report = await runAcceptance({
+      library: runtime.library(),
+      link: rt.needLink(),
+      projectId: params.projectId ?? null,
+      line: params.line ?? '1.1',
+      settleMs: runtime.config.scanSettleMs ?? 600,
+    });
+    if (report.ok && params.savePath) {
+      await fs.writeFile(params.savePath, report.report, 'utf8');
+      report.saved = params.savePath;
+    }
+    return report;
+  },
+
   async diagnose(runtime, params = {}) {
     const findings = diagnose({
       scan: params.scan ?? null,
@@ -537,7 +554,7 @@ export const ops = {
 export const BUS_OPS = new Set([
   'connect', 'disconnect', 'scan', 'deviceInfo', 'memoryRead', 'memoryWrite',
   'propertyRead', 'gaRead', 'gaWrite', 'monitor', 'download', 'capture',
-  'simulator', 'proxy', 'recipeFromCapture',
+  'simulator', 'proxy', 'recipeFromCapture', 'accept',
 ]);
 
 /** Every operation the panel bridge may call, derived from this module. */

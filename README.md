@@ -5,9 +5,9 @@
 
 **在 macOS 上完成 KNX 有线系统（TP1）的调试、下发与验收——不需要 ETS，不需要 Windows。**
 
-KNX 原厂工具 ETS 只支持 Windows（[官方要求](https://support.knx.org/hc/en-us/articles/360018452180-ETS6-Software-requirements)：仅 Windows 11 x64，明确不支持 Linux/macOS）。本项目把 KNX 协议栈整套实现成可在 Mac 上运行的代码，并做成 [DeepSeek Harness](https://github.com/deepseek-ai) 原生插件：**25 个工具 + 一个整页面板 + 录制代理 + 配方库**。
+KNX 原厂工具 ETS 只支持 Windows（[官方要求](https://support.knx.org/hc/en-us/articles/360018452180-ETS6-Software-requirements)：仅 Windows 11 x64，明确不支持 Linux/macOS）。本项目把 KNX 协议栈整套实现成可在 Mac 上运行的代码，并做成 [DeepSeek Harness](https://github.com/deepseek-ai) 原生插件：**26 个工具 + 一个整页面板 + 录制代理 + 配方库**。
 
-> English abstract: KNX commissioning on macOS without ETS. This repository contains a dependency-free JavaScript KNXnet/IP + cEMI stack, a DSH plugin exposing 25 agent tools plus a Web panel, an ETS recording proxy that turns one Windows-side download into a replayable recipe, a product-data/project parser that rebuilds parameter and group-address-table downloads from the project itself, and a diagnostic rule book. Verified against a built-in bus simulator; not yet verified against real hardware.
+> English abstract: KNX commissioning on macOS without ETS. This repository contains a dependency-free JavaScript KNXnet/IP + cEMI stack, a DSH plugin exposing 26 agent tools plus a Web panel, an ETS recording proxy that turns one Windows-side download into a replayable recipe, a product-data/project parser that rebuilds parameter and group-address-table downloads from the project itself, and a diagnostic rule book. Verified against a built-in bus simulator; not yet verified against real hardware.
 
 ---
 
@@ -22,6 +22,7 @@ KNX 原厂工具 ETS 只支持 Windows（[官方要求](https://support.knx.org/
 | **组地址表 / 关联表下发**（换点位不整包重下） | ✅ 需一次基址校准 | 表即 MemoryWrite 的 `uint16` 数组；基址从一次录制反推后按型号复用 |
 | 组值读写、DPT 编解码、验收打点 | ✅ | DPT 1/2/3/4/5/6/7/9/10/11/12/13/14/16 |
 | 故障诊断（重复 IA、无答、负确认、跳数耗尽…） | ✅ | 规则库输出"结论 + 下一步探针" |
+| **批量验收**：工程 vs 现场逐台比对 + Markdown 交接报告 | ✅ 只读 | 掩码/在线/超纲地址一次列清 |
 | **应用镜像（程序代码）下发** | ⚠️ 只能录制复放 | 镜像由 ETS 用厂商产品库编译，不在任何公开导出里 |
 | KNX Secure（IP Secure / Data Secure） | ❌ 未实现 | 需设备认证码与工程密码 |
 
@@ -63,7 +64,8 @@ knx_ga_read   { ga: "1/1/3", dpt: "1.001" }
                                                      生成组地址表/关联表配方（基址见下）
 6  knx_download  { recipe, dryRun: true } → 再真跑   预演 → 执行 → 回读校验
 7  knx_ga_write / knx_ga_read                        逐点验收
-8  knx_diagnose                                      出结论与下一步
+8  knx_accept     { line: "1.1" }                    工程 vs 现场逐台比对，出 Markdown 交接报告
+9  knx_diagnose                                      出结论与下一步
 ```
 
 **首次遇到的新产品**（应用镜像必须靠录制）：
@@ -107,7 +109,8 @@ plugin/                     DSH 插件（零第三方依赖：node:dgram + node:
 ├── lib/http.js             面板桥（经 Host 鉴权 / 回环兜底 / 可选 token）
 ├── lib/simulator.js        回环 KNXnet/IP 网关 + 虚拟设备（含表语义）
 ├── lib/ops.js              应用操作：工具与面板的唯一实现
-├── lib/tools.js            25 个工具（声明式绑定到 ops）
+├── lib/accept.js           批量验收：工程 vs 现场、Markdown 报告
+├── lib/tools.js            26 个工具（声明式绑定到 ops）
 ├── client.js               面板 UI（8 张卡）
 └── test/smoke.mjs          98 项自检
 

@@ -166,14 +166,19 @@ window.__ModuleLoader__.load({
 .knx-card { border:1px solid var(--dsw-alias-border-l1); background:var(--dsw-alias-bg-layer-1); border-radius:12px; padding:14px; display:flex; flex-direction:column; gap:10px; min-width:0; }
 .knx-card h3 { margin:0; font-size:13px; line-height:20px; font-weight:600; letter-spacing:.01em; }
 .knx-card .knx-note { font-size:12px; line-height:18px; color:var(--dsw-alias-label-secondary); }
-.knx-input { height:30px; padding:0 9px; border-radius:8px; border:1px solid var(--dsw-alias-border-l1); background:var(--dsw-alias-bg-base); color:inherit; font-size:13px; min-width:0; }
+.knx-input { height:30px; padding:0 9px; border-radius:8px; border:1px solid var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-primary); font-size:13px; min-width:0; }
 .knx-input:focus { outline:2px solid var(--dsw-alias-brand-primary); outline-offset:1px; }
-.knx-textarea { min-height:88px; padding:8px 9px; border-radius:8px; border:1px solid var(--dsw-alias-border-l1); background:var(--dsw-alias-bg-base); color:inherit; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; line-height:16px; resize:vertical; }
-.knx-btn { height:30px; padding:0 12px; border-radius:8px; border:1px solid var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2); color:inherit; font-size:13px; cursor:pointer; transition:background-color .2s ease; }
-.knx-btn:hover:not(:disabled) { background:var(--dsw-alias-bg-layer-1); }
+.knx-textarea { min-height:88px; padding:8px 9px; border-radius:8px; border:1px solid var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-primary); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; line-height:16px; resize:vertical; }
+.knx-btn { height:30px; padding:0 12px; border-radius:8px; border:1px solid var(--dsw-alias-border-l2); background:var(--dsw-alias-bg-layer-2); color:var(--dsw-alias-label-primary); font-size:13px; cursor:pointer; transition:background-color .2s ease; }
+.knx-btn:hover:not(:disabled) { background:var(--dsw-alias-interactive-bg-hover, var(--dsw-alias-bg-layer-1)); }
 .knx-btn:disabled { opacity:.45; cursor:not-allowed; }
-.knx-btn.primary { border-color:transparent; background:var(--dsw-alias-brand-primary); color:#fff; }
-.knx-btn.ghost { border-color:transparent; background:transparent; }
+/* primary: fill and text come from the same button pair as the rest of the UI. A
+   hard-coded white would be invisible in the dark theme, where the brand fill is
+   near-white and the contrast fill is dark. */
+.knx-btn.primary { border-color:transparent; background:var(--dsw-alias-button-primary-fill, var(--dsw-alias-brand-primary)); color:var(--dsw-alias-button-contrast-fill, var(--dsw-alias-bg-base)); }
+.knx-btn.primary:hover:not(:disabled) { background:var(--dsw-alias-button-primary-hover, var(--dsw-alias-brand-primary)); }
+.knx-btn.ghost { border-color:transparent; background:transparent; color:var(--dsw-alias-label-secondary); }
+.knx-btn.ghost:hover:not(:disabled) { background:var(--dsw-alias-interactive-bg-hover, transparent); color:var(--dsw-alias-label-primary); }
 .knx-table { width:100%; border-collapse:collapse; font-size:12px; line-height:18px; }
 .knx-table th { text-align:left; font-weight:500; color:var(--dsw-alias-label-secondary); padding:4px 6px; border-bottom:1px solid var(--dsw-alias-border-l1); }
 .knx-table td { padding:4px 6px; border-bottom:1px solid var(--dsw-alias-border-l1); vertical-align:top; }
@@ -186,7 +191,7 @@ window.__ModuleLoader__.load({
 .knx-tag.ok { color:var(--dsw-alias-state-success-primary); border-color:currentColor; }
 .knx-banner { border:1px solid var(--dsw-alias-state-error-primary); color:var(--dsw-alias-state-error-primary); border-radius:8px; padding:8px 10px; font-size:12px; line-height:18px; }
 .knx-scroll { max-height:230px; overflow:auto; }
-.knx-empty { font-size:12px; color:var(--dsw-alias-label-tertiary); padding:6px 0; }
+.knx-empty { font-size:12px; color:var(--dsw-alias-label-secondary); padding:6px 0; }
 .knx-kv { display:flex; justify-content:space-between; gap:10px; font-size:12px; line-height:18px; }
 .knx-kv span:first-child { color:var(--dsw-alias-label-secondary); }
 `;

@@ -41,9 +41,9 @@ const call = async (name, args = {}) => {
   if (!definition) throw new Error(`missing tool ${name}`);
   return definition.execute(args, { signal: { aborted: false } });
 };
-check('25 tools registered', tools.size === 25, String(tools.size));
+check('26 tools registered', tools.size === 26, String(tools.size));
 check('schemas are objects', [...tools.values()].every((t) => t.parameters?.type === 'object' && t.description.length > 20));
-check('disconnect, library and proxy tools exist', ['knx_disconnect', 'knx_import', 'knx_library', 'knx_build_download', 'knx_proxy', 'knx_recipe_from_capture', 'knx_catalog', 'knx_group_table'].every((name) => tools.has(name)));
+check('disconnect, library and proxy tools exist', ['knx_disconnect', 'knx_import', 'knx_library', 'knx_build_download', 'knx_proxy', 'knx_recipe_from_capture', 'knx_catalog', 'knx_group_table', 'knx_accept'].every((name) => tools.has(name)));
 
 const started = await call('knx_simulator', { action: 'start' });
 check('simulator started', started.ok && started.devices.length === 3, JSON.stringify(started.devices?.length));
@@ -460,6 +460,23 @@ const secondDevice = await call('knx_group_table', { action: 'build', ia: '1.1.3
 check('the same product family needs no second calibration',
   secondDevice.ok === true && String(secondDevice.profileSource ?? '').startsWith('library'),
   JSON.stringify({ ok: secondDevice.ok, source: secondDevice.profileSource, error: secondDevice.error }));
+
+console.log('acceptance');
+const acceptance = await call('knx_accept', { line: '1.1' });
+check('acceptance compares project against the bus',
+  acceptance.ok === true && acceptance.summary.expected === 2 && acceptance.summary.present === 2,
+  JSON.stringify(acceptance.summary));
+check('acceptance agrees on the mask version',
+  acceptance.devices.filter((row) => row.status === 'ok').length === 2,
+  JSON.stringify(acceptance.devices.map((row) => [row.ia, row.status])));
+check('acceptance reports what is on the bus but not in the project',
+  acceptance.unexpected.some((row) => row.ia === '1.1.1'), JSON.stringify(acceptance.unexpected));
+check('acceptance writes a handover report',
+  /# KNX acceptance/.test(acceptance.report ?? '') && /1\.1\.2/.test(acceptance.report ?? ''),
+  String(acceptance.report ?? '').split('\n')[0]);
+const maskCheck = await import('../lib/accept.js');
+check('mask strings map to descriptors', maskCheck.maskToDescriptor('MV-0705') === 0x0705
+  && maskCheck.maskToDescriptor('garbage') === null);
 
 console.log('routing transport');
 const routingOptions = { group: '239.255.42.42', port: 36799 };

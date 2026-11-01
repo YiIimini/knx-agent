@@ -186,6 +186,12 @@ const TABLE = [
     capturePath: { type: 'string', description: 'Capture to calibrate from (action=infer).' },
   }), 'groupTable'],
 
+  ['knx_accept', 'Run one acceptance pass: scan the line, compare it with the imported project device by device (present? mask on the bus matches the project?), list addresses that are on the bus but not in the project, and attach findings plus a Markdown handover report. Read-only - it never writes to a device.', object({
+    line: { type: 'string', description: 'Area.line to check, e.g. "1.1" (default "1.1").' },
+    projectId: { type: 'string', description: 'Project entry id (defaults to the newest imported project).' },
+    savePath: { type: 'string', description: 'Optional path to write the Markdown report to.' },
+  }), 'accept'],
+
   ['knx_diagnose', 'Diagnose observed evidence: a scan result, captured frames, or failed recipe steps. Returns findings with the next probe, never a guess.', object({
     scan: { type: 'array', items: { type: 'object' }, description: 'Devices from knx_scan.' },
     frames: { type: 'array', items: { type: 'object' }, description: 'Frames from knx_monitor.' },
