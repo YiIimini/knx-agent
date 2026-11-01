@@ -11,6 +11,7 @@ jobs:
     name: knx-agent plugin (node ${{ matrix.node }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         node: ['20', '22']
     steps:
@@ -24,10 +25,12 @@ jobs:
 
   python:
     name: reference prototype (python ${{ matrix.python }})
-    runs-on: ubuntu-latest
+    # ubuntu-latest no longer ships a 3.9 build of setup-python; 22.04 does.
+    runs-on: ubuntu-22.04
     strategy:
+      fail-fast: false
       matrix:
-        python: ['3.9', '3.12']
+        python: ['3.9', '3.11', '3.12']
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

@@ -7,3 +7,8 @@ __pycache__/
 knx-library/
 captures/
 *.jsonl
+
+# python build residue
+*.egg-info/
+build/
+dist/
