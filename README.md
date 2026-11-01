@@ -1,5 +1,8 @@
 # knx-agent
 
+[![test](https://github.com/YiIimini/knx-agent/actions/workflows/test.yml/badge.svg)](https://github.com/YiIimini/knx-agent/actions/workflows/test.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **在 macOS 上完成 KNX 有线系统（TP1）的调试、下发与验收——不需要 ETS，不需要 Windows。**
 
 KNX 原厂工具 ETS 只支持 Windows（[官方要求](https://support.knx.org/hc/en-us/articles/360018452180-ETS6-Software-requirements)：仅 Windows 11 x64，明确不支持 Linux/macOS）。本项目把 KNX 协议栈整套实现成可在 Mac 上运行的代码，并做成 [DeepSeek Harness](https://github.com/deepseek-ai) 原生插件：**25 个工具 + 一个整页面板 + 录制代理 + 配方库**。
