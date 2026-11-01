@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "knxagent"
+version = "0.1.0"
+description = "Reference KNX stack and commissioning agent (early Python prototype of the knx-agent plugin)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = []
+
+[tool.setuptools]
+packages = ["knxagent"]
